@@ -42,12 +42,12 @@
         <div>
           <div class="flex items-center gap-2">
             <h1 class="text-base sm:text-lg font-extrabold tracking-tight">Market Troiano • Scadenze</h1>
-            <span id="liveBadge" class="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-red-500/20 text-red-100 border border-red-300/30">
-              <span id="liveDot" class="w-2 h-2 rounded-full bg-red-400"></span>
-              <span id="liveText">Offline</span>
+            <span id="liveBadge" class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-100 border border-amber-300/30">
+              <span id="liveDot" class="w-2 h-2 rounded-full bg-amber-400"></span>
+              <span id="liveText">Connessione...</span>
             </span>
           </div>
-          <p class="text-[11px] text-emerald-100/90">Via Gargano 148 • Sincronizzazione Istantanea Banco & Cassa</p>
+          <p class="text-[11px] text-emerald-100/90" id="todayDateLabel">Via Gargano 148 • Sincronizzazione Istantanea Banco & Cassa</p>
         </div>
       </div>
 
@@ -71,6 +71,16 @@
     </div>
   </header>
 
+  <!-- BANNER ERRORE GLOBALE VISIBILE SIA SU PC CHE SU MOBILE -->
+  <div id="globalErrorBanner" class="hidden max-w-7xl mx-auto w-full px-4 mt-4 no-print">
+    <div class="bg-red-50 border border-red-300 text-red-900 rounded-2xl p-4 text-xs sm:text-sm flex items-center justify-between gap-3 shadow-sm">
+      <div id="globalErrorText"></div>
+      <button onclick="toggleConfigModal()" class="shrink-0 bg-red-700 hover:bg-red-800 text-white font-bold px-3.5 py-2 rounded-xl text-xs">
+        Correggi URL
+      </button>
+    </div>
+  </div>
+
   <!-- MODALE CONFIGURAZIONE (FIREBASE URL + GEMINI API KEY) -->
   <div id="configModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4 no-print">
     <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
@@ -79,18 +89,18 @@
         <button onclick="toggleConfigModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
       </div>
       <p class="text-xs text-slate-500 mb-4">
-        Inserisci questi due dati una sola volta su telefono e PC: restano salvati solo nella memoria del dispositivo e non vengono mai pubblicati su GitHub.
+        Inserisci questi due dati una sola volta su telefono e PC: restano salvati solo nella memoria del dispositivo.
       </p>
 
       <div class="space-y-4">
         <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">1. URL Firebase Realtime Database (per sincronizzare PC e Cellulare)</label>
-          <input type="text" id="firebaseUrlInput" placeholder="Es. https://tuo-progetto-default-rtdb.europe-west1.firebasedatabase.app" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600" />
-          <p class="text-[11px] text-slate-400 mt-1">Puoi usare lo stesso URL Firebase di Quitadamo o Manfredonia: i dati vanno nella cartella separata <code>/market_troiano_scadenze</code>.</p>
+          <label class="block text-xs font-bold text-slate-700 mb-1">1. URL Firebase Realtime Database</label>
+          <input type="text" id="firebaseUrlInput" placeholder="https://market-troiano-default-rtdb.europe-west1.firebasedatabase.app" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+          <p class="text-[11px] text-slate-400 mt-1">Deve finire con <code>.firebasedatabase.app</code> o <code>.firebaseio.com</code> (assicurati di aver cliccato <strong>Pubblica</strong> nelle Regole).</p>
         </div>
 
         <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">2. Chiave API Google AI Studio (per la voce intelligente)</label>
+          <label class="block text-xs font-bold text-slate-700 mb-1">2. Chiave API Google AI Studio</label>
           <input type="password" id="apiKeyInput" placeholder="Incolla qui la chiave AIzaSy..." class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600" />
         </div>
       </div>
@@ -107,7 +117,6 @@
   <!-- ===================================================================== -->
   <section id="view-mobile" class="max-w-xl mx-auto w-full px-4 mt-5 pb-16">
     
-    <!-- CARD PRINCIPALE MICROFONO / SCRITTURA -->
     <div class="bg-white rounded-3xl shadow-md border border-slate-200/80 p-5 sm:p-6 mb-5">
       <div class="text-center mb-4">
         <span class="inline-block text-[11px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full mb-2">
@@ -119,7 +128,6 @@
         </p>
       </div>
 
-      <!-- PULSANTE MICROFONO GIGANTE -->
       <button id="micBtn" onclick="toggleVoiceRecording()" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-[0.99] text-white font-extrabold py-5 px-6 rounded-2xl text-lg shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-3">
         <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
@@ -128,7 +136,6 @@
         <span id="micBtnLabel">🎙️ Tocca e Parla</span>
       </button>
 
-      <!-- BOX TESTO RILEVATO / SCRITTURA LIBERA -->
       <div class="mt-4 bg-slate-50 border border-slate-200 rounded-2xl p-3.5">
         <div class="flex items-center justify-between mb-1.5">
           <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Oppure scrivi / modifica qui:</span>
@@ -140,7 +147,6 @@
         </button>
       </div>
 
-      <!-- INSERIMENTO DATA ESATTA DA CALENDARIO -->
       <div class="mt-3 pt-3 border-t border-slate-100 text-center">
         <button onclick="document.getElementById('manualForm').classList.toggle('hidden')" class="text-xs text-slate-500 hover:text-emerald-700 font-semibold">
           📅 Seleziona data da calendario
@@ -154,11 +160,9 @@
         </div>
       </div>
 
-      <!-- MESSAGGI STATO -->
       <div id="statusBox" class="hidden mt-3 p-3 rounded-xl text-xs sm:text-sm flex items-center gap-2"></div>
     </div>
 
-    <!-- RIEPILOGO RAPIDO ANCHE DA MOBILE -->
     <div class="flex items-center justify-between mb-2.5 px-1">
       <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-500">Situazione Attuale (<span id="mobileTotalCount">0</span>)</h3>
       <button onclick="shareListWhatsApp()" class="text-xs font-bold text-emerald-700 hover:underline">📲 Invia su WhatsApp</button>
@@ -172,7 +176,6 @@
   <!-- ===================================================================== -->
   <section id="view-pc" class="hidden max-w-7xl mx-auto w-full px-4 mt-5 pb-12">
 
-    <!-- BARRA STATISTICHE KPI IN TEMPO REALE -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5">
       <div class="bg-white rounded-2xl p-4 border-l-4 border-red-600 shadow-sm flex items-center justify-between">
         <div>
@@ -207,7 +210,6 @@
       </div>
     </div>
 
-    <!-- BARRA RICERCA E AZIONI RAPIDE PC -->
     <div class="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-200 mb-5 flex flex-wrap items-center justify-between gap-3 no-print">
       <div class="flex items-center gap-2 flex-1 min-w-[220px]">
         <span class="text-slate-400">🔍</span>
@@ -223,10 +225,8 @@
       </div>
     </div>
 
-    <!-- BACHECA KANBAN A 3 COLONNE -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
 
-      <!-- COLONNA 1: URGENTI (SCADUTI O ENTRO 3 GIORNI) -->
       <div class="bg-red-50/70 rounded-3xl p-4 border border-red-200/80">
         <div class="flex items-center justify-between mb-3 px-1">
           <div class="flex items-center gap-2">
@@ -238,7 +238,6 @@
         <div id="col-urgent" class="space-y-2.5 min-h-[120px]"></div>
       </div>
 
-      <!-- COLONNA 2: IN ARRIVO (4 - 7 GIORNI) -->
       <div class="bg-amber-50/70 rounded-3xl p-4 border border-amber-200/80">
         <div class="flex items-center justify-between mb-3 px-1">
           <div class="flex items-center gap-2">
@@ -250,7 +249,6 @@
         <div id="col-soon" class="space-y-2.5 min-h-[120px]"></div>
       </div>
 
-      <!-- COLONNA 3: MONITORATI (+7 GIORNI) -->
       <div class="bg-emerald-50/60 rounded-3xl p-4 border border-emerald-200/80">
         <div class="flex items-center justify-between mb-3 px-1">
           <div class="flex items-center gap-2">
@@ -266,7 +264,7 @@
 
   </section>
 
-  <!-- FIREBASE SDK MODULAR (REALTIME SYNC) -->
+  <!-- FIREBASE SDK MODULAR -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getDatabase, ref, onValue, push, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
@@ -277,8 +275,8 @@
     let recognition = null;
     let isRecording = false;
     let currentView = 'mobile';
+    let lastRenderedDay = new Date().toDateString();
 
-    // Esponi funzioni globali per gli onclick HTML
     window.switchView = switchView;
     window.toggleConfigModal = toggleConfigModal;
     window.saveConfig = saveConfig;
@@ -290,7 +288,6 @@
     window.renderAll = renderAll;
 
     window.addEventListener('DOMContentLoaded', () => {
-      // Controlla parametro URL (?view=pc oppure ?view=mobile) o larghezza schermo
       const params = new URLSearchParams(window.location.search);
       const urlView = params.get('view');
       if (urlView === 'pc' || urlView === 'mobile') {
@@ -301,9 +298,26 @@
         switchView('mobile');
       }
 
+      updateHeaderDate();
       setupSpeechRecognition();
       initCloudConnection();
+
+      // Controllo automatico ogni minuto: appena scatta la mezzanotte sposta i prodotti tra le colonne da solo
+      setInterval(() => {
+        const currentDay = new Date().toDateString();
+        if (currentDay !== lastRenderedDay) {
+          lastRenderedDay = currentDay;
+          updateHeaderDate();
+          renderAll();
+        }
+      }, 60000);
     });
+
+    function updateHeaderDate() {
+      const oggi = new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      const el = document.getElementById('todayDateLabel');
+      if (el) el.textContent = `Via Gargano 148 • Oggi: ${oggi.charAt(0).toUpperCase() + oggi.slice(1)}`;
+    }
 
     function switchView(view) {
       currentView = view;
@@ -325,6 +339,25 @@
       }
     }
 
+    function normalizeFirebaseUrl(rawUrl) {
+      if (!rawUrl) return '';
+      let clean = rawUrl.trim();
+      const match = clean.match(/https:\/\/[a-zA-Z0-9-]+\.(?:firebasedatabase\.app|firebaseio\.com)/);
+      if (match) return match[0];
+      return clean.replace(/\/+$/, '');
+    }
+
+    function showGlobalError(msg) {
+      const banner = document.getElementById('globalErrorBanner');
+      const text = document.getElementById('globalErrorText');
+      if (!msg) {
+        banner.classList.add('hidden');
+      } else {
+        text.innerHTML = `<strong>⚠️ Problema Connessione Firebase:</strong> ${msg}`;
+        banner.classList.remove('hidden');
+      }
+    }
+
     function toggleConfigModal() {
       const modal = document.getElementById('configModal');
       document.getElementById('firebaseUrlInput').value = localStorage.getItem('market_firebase_url') || '';
@@ -333,11 +366,11 @@
     }
 
     function saveConfig() {
-      let fbUrl = document.getElementById('firebaseUrlInput').value.trim().replace(/\/$/, '');
+      const fbUrl = normalizeFirebaseUrl(document.getElementById('firebaseUrlInput').value);
       const apiKey = document.getElementById('apiKeyInput').value.trim();
 
       if (!fbUrl || !fbUrl.startsWith('https://')) {
-        alert('Inserisci un URL Firebase Realtime Database valido (inizia con https://...)');
+        alert('URL Firebase non valido. Deve iniziare con https:// e finire con .firebasedatabase.app');
         return;
       }
       if (!apiKey) {
@@ -351,7 +384,7 @@
       location.reload();
     }
 
-    function updateConnectionUI(isConnected) {
+    function updateConnectionUI(state) {
       const fbUrl = localStorage.getItem('market_firebase_url');
       const apiKey = localStorage.getItem('gemini_api_key_market');
       document.getElementById('configStatusDot').className = (fbUrl && apiKey)
@@ -362,10 +395,15 @@
       const liveDot = document.getElementById('liveDot');
       const liveText = document.getElementById('liveText');
 
-      if (isConnected) {
+      if (state === 'connected') {
+        showGlobalError(null);
         liveBadge.className = 'inline-flex items-center gap-1.5 text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-100 border border-emerald-300/40';
         liveDot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-ping';
         liveText.textContent = 'LIVE SYNC';
+      } else if (state === 'connecting') {
+        liveBadge.className = 'inline-flex items-center gap-1.5 text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-100 border border-amber-300/40';
+        liveDot.className = 'w-2 h-2 rounded-full bg-amber-300 animate-pulse';
+        liveText.textContent = 'Connessione...';
       } else {
         liveBadge.className = 'inline-flex items-center gap-1.5 text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-100 border border-red-300/30';
         liveDot.className = 'w-2 h-2 rounded-full bg-red-400';
@@ -374,23 +412,37 @@
     }
 
     function initCloudConnection() {
-      const fbUrl = localStorage.getItem('market_firebase_url');
+      const rawUrl = localStorage.getItem('market_firebase_url');
+      const fbUrl = normalizeFirebaseUrl(rawUrl);
       const apiKey = localStorage.getItem('gemini_api_key_market');
 
       if (!fbUrl || !apiKey) {
-        updateConnectionUI(false);
+        updateConnectionUI('disconnected');
         toggleConfigModal();
         return;
       }
+
+      if (fbUrl !== rawUrl) {
+        localStorage.setItem('market_firebase_url', fbUrl);
+      }
+
+      updateConnectionUI('connecting');
+
+      const connWatchdog = setTimeout(() => {
+        if (document.getElementById('liveText').textContent !== 'LIVE SYNC') {
+          updateConnectionUI('disconnected');
+          showGlobalError(`Impossibile raggiungere <code>${fbUrl}</code>. Controlla che l'URL sia esatto e che nella scheda <strong>Regole</strong> di Firebase tu abbia cliccato <strong>Pubblica</strong> con <code>".read": true, ".write": true</code>.`);
+        }
+      }, 8000);
 
       try {
         const app = initializeApp({ databaseURL: fbUrl });
         db = getDatabase(app);
         lotsRef = ref(db, 'market_troiano_scadenze');
 
-        // Ascolto ISTANTANEO in tempo reale (esattamente come app Quitadamo)
         onValue(lotsRef, (snapshot) => {
-          updateConnectionUI(true);
+          clearTimeout(connWatchdog);
+          updateConnectionUI('connected');
           const val = snapshot.val();
           lots = [];
           if (val) {
@@ -404,13 +456,16 @@
           }
           renderAll();
         }, (error) => {
+          clearTimeout(connWatchdog);
           console.error(error);
-          updateConnectionUI(false);
-          showStatus('Errore connessione Firebase: controlla URL o Regole lettura/scrittura.', 'error');
+          updateConnectionUI('disconnected');
+          showGlobalError(`Accesso negato da Firebase (${error.message}). Vai su Firebase > Realtime Database > Regole, imposta <code>".read": true, ".write": true</code> e clicca <strong>Pubblica</strong>.`);
         });
       } catch (err) {
+        clearTimeout(connWatchdog);
         console.error(err);
-        updateConnectionUI(false);
+        updateConnectionUI('disconnected');
+        showGlobalError(`Errore configurazione: ${err.message}`);
       }
     }
 
@@ -682,10 +737,8 @@ Rispondi SOLO con JSON valido:
     }
 
     function renderAll() {
-      // Ordina sempre dalla scadenza più vicina
       lots.sort((a, b) => a.scadenza.localeCompare(b.scadenza));
 
-      // --- 1. RENDER MOBILE ---
       document.getElementById('mobileTotalCount').textContent = lots.length;
       const mobileList = document.getElementById('mobileLotsList');
       if (lots.length === 0) {
@@ -694,7 +747,6 @@ Rispondi SOLO con JSON valido:
         mobileList.innerHTML = lots.map(item => createLotCardHtml(item, true)).join('');
       }
 
-      // --- 2. RENDER MONITOR PC ---
       const search = (document.getElementById('pcSearchInput')?.value || '').trim().toLowerCase();
       const filtered = search ? lots.filter(l => l.prodotto.toLowerCase().includes(search)) : lots;
 
