@@ -170,7 +170,6 @@
       renderList();
     }
 
-    // Configurazione Riconoscimento Vocale Browser (Italiano)
     function setupSpeechRecognition() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) return;
@@ -402,7 +401,6 @@ Rispondi SOLO con JSON valido:
       const emptyState = document.getElementById('emptyState');
       const search = document.getElementById('searchInput').value.trim().toLowerCase();
 
-      // Ordina sempre dal più vicino alla scadenza al più lontano
       lots.sort((a, b) => a.scadenza.localeCompare(b.scadenza));
 
       let urgentCount = 0;
