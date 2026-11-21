@@ -3,171 +3,415 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Market Troiano - Scadenze Freschi</title>
+  <title>Market Troiano • Gestione Scadenze Live</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @keyframes pulseRing {
-      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-      70% { transform: scale(1); box-shadow: 0 0 0 14px rgba(239, 68, 68, 0); }
-      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+      0% { transform: scale(0.96); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.75); }
+      70% { transform: scale(1); box-shadow: 0 0 0 16px rgba(239, 68, 68, 0); }
+      100% { transform: scale(0.96); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
     }
     .mic-recording {
-      animation: pulseRing 1.5s infinite;
-      background-color: #dc2626 !important;
+      animation: pulseRing 1.4s infinite;
+      background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+    }
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-card {
+      animation: fadeSlideIn 0.25s ease-out;
+    }
+    @media print {
+      .no-print { display: none !important; }
+      body { background: white !important; }
     }
   </style>
 </head>
-<body class="bg-slate-100 text-slate-800 min-h-screen pb-16">
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col">
 
-  <!-- HEADER -->
-  <header class="bg-emerald-700 text-white shadow-md sticky top-0 z-30">
-    <div class="max-w-2xl mx-auto px-4 py-3.5 flex items-center justify-between">
-      <div>
-        <h1 class="text-lg font-bold tracking-tight">Market Troiano • Scadenze</h1>
-        <p class="text-xs text-emerald-100" id="headerSummary">Controllo Lotti Banco & Freschi</p>
+  <!-- TOP NAVBAR -->
+  <header class="bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-700 text-white shadow-lg sticky top-0 z-40 no-print">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      
+      <!-- BRAND -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center font-black text-lg tracking-tighter border border-white/20">
+          MT
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base sm:text-lg font-extrabold tracking-tight">Market Troiano • Scadenze</h1>
+            <span id="liveBadge" class="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-red-500/20 text-red-100 border border-red-300/30">
+              <span id="liveDot" class="w-2 h-2 rounded-full bg-red-400"></span>
+              <span id="liveText">Offline</span>
+            </span>
+          </div>
+          <p class="text-[11px] text-emerald-100/90">Via Gargano 148 • Sincronizzazione Istantanea Banco & Cassa</p>
+        </div>
       </div>
+
+      <!-- SELETTORE VISTA (MOBILE vs MONITOR PC) + IMPOSTAZIONI -->
       <div class="flex items-center gap-2">
-        <button onclick="shareListWhatsApp()" title="Invia lista su WhatsApp" class="bg-emerald-800 hover:bg-emerald-900 text-xs px-2.5 py-2 rounded-lg border border-emerald-600">
-          📲 Invia
-        </button>
-        <button onclick="toggleApiModal()" class="bg-emerald-800 hover:bg-emerald-900 text-xs px-2.5 py-2 rounded-lg border border-emerald-600 flex items-center gap-1.5">
-          <span>🔑 API</span>
-          <span id="apiStatusDot" class="w-2.5 h-2.5 rounded-full bg-red-400"></span>
+        <div class="bg-black/20 p-1 rounded-xl flex text-xs font-bold border border-white/10">
+          <button onclick="switchView('mobile')" id="tab-mobile" class="px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 bg-white text-emerald-900 shadow">
+            <span>📱</span><span>Inserisci (Cellulare)</span>
+          </button>
+          <button onclick="switchView('pc')" id="tab-pc" class="px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 text-emerald-100 hover:text-white">
+            <span>🖥️</span><span>Monitor PC</span>
+          </button>
+        </div>
+
+        <button onclick="toggleConfigModal()" class="bg-white/15 hover:bg-white/25 text-xs font-semibold px-3 py-2 rounded-xl border border-white/20 flex items-center gap-1.5 transition">
+          <span>⚙️ Configura</span>
+          <span id="configStatusDot" class="w-2.5 h-2.5 rounded-full bg-red-400"></span>
         </button>
       </div>
+
     </div>
   </header>
 
-  <!-- MODALE CHIAVE API -->
-  <div id="apiModal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
-      <h2 class="text-lg font-bold text-slate-900 mb-1">Configura Chiave Gemini API</h2>
-      <p class="text-xs text-slate-500 mb-4">Usa la stessa chiave AIzaSy... delle fatture. Resta salvata solo su questo telefono.</p>
-      <input type="password" id="apiKeyInput" placeholder="Incolla qui la chiave AIzaSy..." class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-emerald-600" />
-      <div class="flex justify-end gap-2">
-        <button onclick="toggleApiModal()" class="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-xl">Chiudi</button>
-        <button onclick="saveApiKey()" class="px-4 py-2 text-sm bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-xl">Salva</button>
+  <!-- MODALE CONFIGURAZIONE (FIREBASE URL + GEMINI API KEY) -->
+  <div id="configModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-lg font-extrabold text-slate-900">Collegamento Cloud & AI</h2>
+        <button onclick="toggleConfigModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+      </div>
+      <p class="text-xs text-slate-500 mb-4">
+        Inserisci questi due dati una sola volta su telefono e PC: restano salvati solo nella memoria del dispositivo e non vengono mai pubblicati su GitHub.
+      </p>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">1. URL Firebase Realtime Database (per sincronizzare PC e Cellulare)</label>
+          <input type="text" id="firebaseUrlInput" placeholder="Es. https://tuo-progetto-default-rtdb.europe-west1.firebasedatabase.app" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+          <p class="text-[11px] text-slate-400 mt-1">Puoi usare lo stesso URL Firebase di Quitadamo o Manfredonia: i dati vanno nella cartella separata <code>/market_troiano_scadenze</code>.</p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">2. Chiave API Google AI Studio (per la voce intelligente)</label>
+          <input type="password" id="apiKeyInput" placeholder="Incolla qui la chiave AIzaSy..." class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 mt-6">
+        <button onclick="toggleConfigModal()" class="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-xl">Annulla</button>
+        <button onclick="saveConfig()" class="px-5 py-2.5 text-sm bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl shadow">Salva e Connetti</button>
       </div>
     </div>
   </div>
 
-  <!-- MAIN -->
-  <main class="max-w-2xl mx-auto px-4 mt-5">
-
-    <!-- BOX DETTATURA VOCALE -->
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mb-5 text-center">
-      <p class="text-xs text-slate-500 mb-3">
-        Tocca il microfono e dì prodotto e scadenza (anche più prodotti insieme):<br/>
-        <span class="italic text-slate-400">"Mozzarelle Leone 29 novembre, Prosciutto cotto 4 dicembre"</span>
-      </p>
+  <!-- ===================================================================== -->
+  <!-- VISTA 1: PANNELLO CELLULARE (INSERIMENTO VOCALE E RAPIDO)             -->
+  <!-- ===================================================================== -->
+  <section id="view-mobile" class="max-w-xl mx-auto w-full px-4 mt-5 pb-16">
+    
+    <!-- CARD PRINCIPALE MICROFONO / SCRITTURA -->
+    <div class="bg-white rounded-3xl shadow-md border border-slate-200/80 p-5 sm:p-6 mb-5">
+      <div class="text-center mb-4">
+        <span class="inline-block text-[11px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full mb-2">
+          Inserimento Rapido da Scaffale
+        </span>
+        <h2 class="text-lg font-extrabold text-slate-900">Detta o scrivi le scadenze</h2>
+        <p class="text-xs text-slate-500 mt-0.5">
+          Es: <span class="italic">"Mozzarelle Leone 29 novembre, Prosciutto cotto 4 dicembre"</span>
+        </p>
+      </div>
 
       <!-- PULSANTE MICROFONO GIGANTE -->
-      <button id="micBtn" onclick="toggleVoiceRecording()" class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold py-4 px-6 rounded-2xl text-base shadow-md transition flex items-center justify-center gap-3">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+      <button id="micBtn" onclick="toggleVoiceRecording()" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-[0.99] text-white font-extrabold py-5 px-6 rounded-2xl text-lg shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-3">
+        <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
           <path stroke-linecap="round" stroke-linejoin="round" d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/>
         </svg>
         <span id="micBtnLabel">🎙️ Tocca e Parla</span>
       </button>
 
-      <!-- TRASCRIZIONE IN CORSO / INPUT RAPIDO -->
-      <div id="transcriptBox" class="hidden mt-3 p-3 bg-slate-50 border border-slate-200 rounded-xl text-left">
-        <div class="flex items-center justify-between mb-1">
-          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Testo rilevato:</span>
-          <button onclick="clearTranscript()" class="text-xs text-slate-400 hover:text-red-500">Cancella</button>
+      <!-- BOX TESTO RILEVATO / SCRITTURA LIBERA -->
+      <div class="mt-4 bg-slate-50 border border-slate-200 rounded-2xl p-3.5">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Oppure scrivi / modifica qui:</span>
+          <button onclick="document.getElementById('voiceText').value=''" class="text-xs text-slate-400 hover:text-red-500 font-medium">Pulisci</button>
         </div>
-        <textarea id="voiceText" rows="2" class="w-full bg-transparent text-sm text-slate-800 font-medium focus:outline-none resize-none" placeholder="Il testo dettato apparirà qui..."></textarea>
-        <button onclick="processVoiceText()" class="mt-2 w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2.5 rounded-xl text-sm shadow-sm transition">
-          ⚡ Aggiungi Lotti alla Lista
+        <textarea id="voiceText" rows="2" class="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-600 resize-none" placeholder="Scrivi qui es: Ricotta Santa Lucia 30 novembre, Yogurt 10 dicembre..."></textarea>
+        <button onclick="processVoiceText()" class="mt-2.5 w-full bg-amber-500 hover:bg-amber-600 active:scale-[0.99] text-slate-950 font-extrabold py-3 rounded-xl text-sm shadow-sm transition flex items-center justify-center gap-2">
+          <span>⚡ Invia al Monitor PC</span>
         </button>
       </div>
 
-      <!-- INSERIMENTO MANUALE VELOCE (OPZIONALE) -->
-      <div class="mt-3 pt-3 border-t border-slate-100">
-        <button onclick="toggleManualForm()" class="text-xs text-slate-500 hover:text-emerald-700 font-medium">
-          + Oppure aggiungi/scrivi a mano
+      <!-- INSERIMENTO DATA ESATTA DA CALENDARIO -->
+      <div class="mt-3 pt-3 border-t border-slate-100 text-center">
+        <button onclick="document.getElementById('manualForm').classList.toggle('hidden')" class="text-xs text-slate-500 hover:text-emerald-700 font-semibold">
+          📅 Seleziona data da calendario
         </button>
-        <div id="manualForm" class="hidden mt-3 flex flex-col sm:flex-row gap-2">
-          <input type="text" id="manualProd" placeholder="Es. Mozzarelle Leone" class="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-sm" />
-          <input type="date" id="manualDate" class="border border-slate-300 rounded-xl px-3 py-2 text-sm" />
-          <button onclick="addManualItem()" class="bg-slate-800 text-white font-semibold px-4 py-2 rounded-xl text-sm">Aggiungi</button>
+        <div id="manualForm" class="hidden mt-3 flex flex-col gap-2 text-left">
+          <input type="text" id="manualProd" placeholder="Nome prodotto (es. Mozzarelle Leone)" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm" />
+          <div class="flex gap-2">
+            <input type="date" id="manualDate" class="flex-1 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm" />
+            <button onclick="addManualItem()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold px-5 py-2.5 rounded-xl text-sm">Salva</button>
+          </div>
         </div>
       </div>
 
-      <!-- STATO / MESSAGGI -->
-      <div id="statusBox" class="hidden mt-3 p-3 rounded-xl text-xs sm:text-sm flex items-center gap-2 text-left"></div>
+      <!-- MESSAGGI STATO -->
+      <div id="statusBox" class="hidden mt-3 p-3 rounded-xl text-xs sm:text-sm flex items-center gap-2"></div>
     </div>
 
-    <!-- FILTRI RAPIDI -->
-    <div class="flex items-center justify-between mb-3 px-1">
-      <div class="flex gap-1.5 text-xs font-semibold">
-        <button onclick="setFilter('all')" id="filter-all" class="px-3 py-1.5 rounded-lg bg-slate-800 text-white">Tutti (<span id="count-all">0</span>)</button>
-        <button onclick="setFilter('urgent')" id="filter-urgent" class="px-3 py-1.5 rounded-lg bg-white text-slate-700 border border-slate-200">🔴 Urgenti (<span id="count-urgent">0</span>)</button>
-        <button onclick="setFilter('soon')" id="filter-soon" class="px-3 py-1.5 rounded-lg bg-white text-slate-700 border border-slate-200">🟡 In arrivo (<span id="count-soon">0</span>)</button>
+    <!-- RIEPILOGO RAPIDO ANCHE DA MOBILE -->
+    <div class="flex items-center justify-between mb-2.5 px-1">
+      <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-500">Situazione Attuale (<span id="mobileTotalCount">0</span>)</h3>
+      <button onclick="shareListWhatsApp()" class="text-xs font-bold text-emerald-700 hover:underline">📲 Invia su WhatsApp</button>
+    </div>
+    <div id="mobileLotsList" class="space-y-2.5"></div>
+
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- VISTA 2: MONITOR PC NEGOZIO (DASHBOARD COMPLETA SEMPRE AGGIORNATA)    -->
+  <!-- ===================================================================== -->
+  <section id="view-pc" class="hidden max-w-7xl mx-auto w-full px-4 mt-5 pb-12">
+
+    <!-- BARRA STATISTICHE KPI IN TEMPO REALE -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5">
+      <div class="bg-white rounded-2xl p-4 border-l-4 border-red-600 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold uppercase text-slate-400">Scaduti / Oggi</p>
+          <p class="text-2xl sm:text-3xl font-black text-red-600 mt-0.5" id="kpi-expired">0</p>
+        </div>
+        <span class="text-2xl">🚨</span>
       </div>
-      <input type="text" id="searchInput" oninput="renderList()" placeholder="Cerca..." class="w-28 sm:w-40 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-emerald-600" />
+
+      <div class="bg-white rounded-2xl p-4 border-l-4 border-orange-500 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold uppercase text-slate-400">Entro 3 Giorni</p>
+          <p class="text-2xl sm:text-3xl font-black text-orange-600 mt-0.5" id="kpi-urgent">0</p>
+        </div>
+        <span class="text-2xl">🔥</span>
+      </div>
+
+      <div class="bg-white rounded-2xl p-4 border-l-4 border-amber-400 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold uppercase text-slate-400">In Arrivo (4-7 gg)</p>
+          <p class="text-2xl sm:text-3xl font-black text-amber-600 mt-0.5" id="kpi-soon">0</p>
+        </div>
+        <span class="text-2xl">⏳</span>
+      </div>
+
+      <div class="bg-white rounded-2xl p-4 border-l-4 border-emerald-500 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold uppercase text-slate-400">In Regola (+7 gg)</p>
+          <p class="text-2xl sm:text-3xl font-black text-emerald-600 mt-0.5" id="kpi-ok">0</p>
+        </div>
+        <span class="text-2xl">✅</span>
+      </div>
     </div>
 
-    <!-- LISTA LOTTI -->
-    <div id="lotsContainer" class="space-y-2.5"></div>
-
-    <!-- EMPTY STATE -->
-    <div id="emptyState" class="hidden bg-white rounded-2xl border border-slate-200 p-8 text-center">
-      <p class="text-sm font-semibold text-slate-700 mb-1">Nessun lotto registrato in questa vista</p>
-      <p class="text-xs text-slate-400">Premi "🎙️ Tocca e Parla" per inserire le scadenze dei freschi al volo.</p>
+    <!-- BARRA RICERCA E AZIONI RAPIDE PC -->
+    <div class="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-200 mb-5 flex flex-wrap items-center justify-between gap-3 no-print">
+      <div class="flex items-center gap-2 flex-1 min-w-[220px]">
+        <span class="text-slate-400">🔍</span>
+        <input type="text" id="pcSearchInput" oninput="renderAll()" placeholder="Filtra prodotto sul monitor (es. Mozzarella, Cotto, Yogurt)..." class="w-full text-sm focus:outline-none" />
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="shareListWhatsApp()" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold px-3.5 py-2 rounded-xl transition">
+          📲 WhatsApp Urgenti
+        </button>
+        <button onclick="window.print()" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition">
+          🖨️ Stampa Situazione
+        </button>
+      </div>
     </div>
 
-  </main>
+    <!-- BACHECA KANBAN A 3 COLONNE -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
 
-  <script>
-    const STORAGE_KEY = 'market_troiano_scadenze_v1';
+      <!-- COLONNA 1: URGENTI (SCADUTI O ENTRO 3 GIORNI) -->
+      <div class="bg-red-50/70 rounded-3xl p-4 border border-red-200/80">
+        <div class="flex items-center justify-between mb-3 px-1">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-red-600 animate-pulse"></span>
+            <h3 class="font-extrabold text-sm uppercase tracking-wide text-red-900">1. Urgenti (Oggi / 3 gg)</h3>
+          </div>
+          <span id="colCount-urgent" class="text-xs font-black bg-red-600 text-white px-2.5 py-0.5 rounded-full">0</span>
+        </div>
+        <div id="col-urgent" class="space-y-2.5 min-h-[120px]"></div>
+      </div>
+
+      <!-- COLONNA 2: IN ARRIVO (4 - 7 GIORNI) -->
+      <div class="bg-amber-50/70 rounded-3xl p-4 border border-amber-200/80">
+        <div class="flex items-center justify-between mb-3 px-1">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+            <h3 class="font-extrabold text-sm uppercase tracking-wide text-amber-900">2. In Arrivo (4 - 7 gg)</h3>
+          </div>
+          <span id="colCount-soon" class="text-xs font-black bg-amber-500 text-white px-2.5 py-0.5 rounded-full">0</span>
+        </div>
+        <div id="col-soon" class="space-y-2.5 min-h-[120px]"></div>
+      </div>
+
+      <!-- COLONNA 3: MONITORATI (+7 GIORNI) -->
+      <div class="bg-emerald-50/60 rounded-3xl p-4 border border-emerald-200/80">
+        <div class="flex items-center justify-between mb-3 px-1">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-emerald-600"></span>
+            <h3 class="font-extrabold text-sm uppercase tracking-wide text-emerald-900">3. Monitorati (+7 gg)</h3>
+          </div>
+          <span id="colCount-ok" class="text-xs font-black bg-emerald-600 text-white px-2.5 py-0.5 rounded-full">0</span>
+        </div>
+        <div id="col-ok" class="space-y-2.5 min-h-[120px]"></div>
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- FIREBASE SDK MODULAR (REALTIME SYNC) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getDatabase, ref, onValue, push, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+    let db = null;
+    let lotsRef = null;
     let lots = [];
-    let currentFilter = 'all';
     let recognition = null;
     let isRecording = false;
+    let currentView = 'mobile';
+
+    // Esponi funzioni globali per gli onclick HTML
+    window.switchView = switchView;
+    window.toggleConfigModal = toggleConfigModal;
+    window.saveConfig = saveConfig;
+    window.toggleVoiceRecording = toggleVoiceRecording;
+    window.processVoiceText = processVoiceText;
+    window.addManualItem = addManualItem;
+    window.completeLot = completeLot;
+    window.shareListWhatsApp = shareListWhatsApp;
+    window.renderAll = renderAll;
 
     window.addEventListener('DOMContentLoaded', () => {
-      const savedKey = localStorage.getItem('gemini_api_key_market');
-      updateApiDot(!!savedKey);
-      if (!savedKey) toggleApiModal();
+      // Controlla parametro URL (?view=pc oppure ?view=mobile) o larghezza schermo
+      const params = new URLSearchParams(window.location.search);
+      const urlView = params.get('view');
+      if (urlView === 'pc' || urlView === 'mobile') {
+        switchView(urlView);
+      } else if (window.innerWidth >= 1024) {
+        switchView('pc');
+      } else {
+        switchView('mobile');
+      }
 
-      loadLots();
       setupSpeechRecognition();
-      renderList();
+      initCloudConnection();
     });
 
-    function toggleApiModal() {
-      const modal = document.getElementById('apiModal');
-      const input = document.getElementById('apiKeyInput');
-      input.value = localStorage.getItem('gemini_api_key_market') || '';
-      modal.classList.toggle('hidden');
-    }
+    function switchView(view) {
+      currentView = view;
+      const mobileSec = document.getElementById('view-mobile');
+      const pcSec = document.getElementById('view-pc');
+      const tabMobile = document.getElementById('tab-mobile');
+      const tabPc = document.getElementById('tab-pc');
 
-    function saveApiKey() {
-      const val = document.getElementById('apiKeyInput').value.trim();
-      if (!val) return alert('Inserisci una chiave API valida.');
-      localStorage.setItem('gemini_api_key_market', val);
-      updateApiDot(true);
-      toggleApiModal();
-    }
-
-    function updateApiDot(isSet) {
-      document.getElementById('apiStatusDot').className = isSet
-        ? 'w-2.5 h-2.5 rounded-full bg-emerald-400'
-        : 'w-2.5 h-2.5 rounded-full bg-red-400';
-    }
-
-    function loadLots() {
-      try {
-        lots = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-      } catch {
-        lots = [];
+      if (view === 'pc') {
+        mobileSec.classList.add('hidden');
+        pcSec.classList.remove('hidden');
+        tabPc.className = 'px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 bg-white text-emerald-900 shadow';
+        tabMobile.className = 'px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 text-emerald-100 hover:text-white';
+      } else {
+        pcSec.classList.add('hidden');
+        mobileSec.classList.remove('hidden');
+        tabMobile.className = 'px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 bg-white text-emerald-900 shadow';
+        tabPc.className = 'px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 text-emerald-100 hover:text-white';
       }
     }
 
-    function saveLots() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(lots));
-      renderList();
+    function toggleConfigModal() {
+      const modal = document.getElementById('configModal');
+      document.getElementById('firebaseUrlInput').value = localStorage.getItem('market_firebase_url') || '';
+      document.getElementById('apiKeyInput').value = localStorage.getItem('gemini_api_key_market') || '';
+      modal.classList.toggle('hidden');
+    }
+
+    function saveConfig() {
+      let fbUrl = document.getElementById('firebaseUrlInput').value.trim().replace(/\/$/, '');
+      const apiKey = document.getElementById('apiKeyInput').value.trim();
+
+      if (!fbUrl || !fbUrl.startsWith('https://')) {
+        alert('Inserisci un URL Firebase Realtime Database valido (inizia con https://...)');
+        return;
+      }
+      if (!apiKey) {
+        alert('Inserisci la chiave API Gemini (AIzaSy...)');
+        return;
+      }
+
+      localStorage.setItem('market_firebase_url', fbUrl);
+      localStorage.setItem('gemini_api_key_market', apiKey);
+      toggleConfigModal();
+      location.reload();
+    }
+
+    function updateConnectionUI(isConnected) {
+      const fbUrl = localStorage.getItem('market_firebase_url');
+      const apiKey = localStorage.getItem('gemini_api_key_market');
+      document.getElementById('configStatusDot').className = (fbUrl && apiKey)
+        ? 'w-2.5 h-2.5 rounded-full bg-emerald-400'
+        : 'w-2.5 h-2.5 rounded-full bg-red-400';
+
+      const liveBadge = document.getElementById('liveBadge');
+      const liveDot = document.getElementById('liveDot');
+      const liveText = document.getElementById('liveText');
+
+      if (isConnected) {
+        liveBadge.className = 'inline-flex items-center gap-1.5 text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-100 border border-emerald-300/40';
+        liveDot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-ping';
+        liveText.textContent = 'LIVE SYNC';
+      } else {
+        liveBadge.className = 'inline-flex items-center gap-1.5 text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-100 border border-red-300/30';
+        liveDot.className = 'w-2 h-2 rounded-full bg-red-400';
+        liveText.textContent = 'Non connesso';
+      }
+    }
+
+    function initCloudConnection() {
+      const fbUrl = localStorage.getItem('market_firebase_url');
+      const apiKey = localStorage.getItem('gemini_api_key_market');
+
+      if (!fbUrl || !apiKey) {
+        updateConnectionUI(false);
+        toggleConfigModal();
+        return;
+      }
+
+      try {
+        const app = initializeApp({ databaseURL: fbUrl });
+        db = getDatabase(app);
+        lotsRef = ref(db, 'market_troiano_scadenze');
+
+        // Ascolto ISTANTANEO in tempo reale (esattamente come app Quitadamo)
+        onValue(lotsRef, (snapshot) => {
+          updateConnectionUI(true);
+          const val = snapshot.val();
+          lots = [];
+          if (val) {
+            Object.entries(val).forEach(([firebaseKey, item]) => {
+              lots.push({
+                id: firebaseKey,
+                prodotto: item.prodotto || 'Articolo',
+                scadenza: item.scadenza || '2099-12-31'
+              });
+            });
+          }
+          renderAll();
+        }, (error) => {
+          console.error(error);
+          updateConnectionUI(false);
+          showStatus('Errore connessione Firebase: controlla URL o Regole lettura/scrittura.', 'error');
+        });
+      } catch (err) {
+        console.error(err);
+        updateConnectionUI(false);
+      }
     }
 
     function setupSpeechRecognition() {
@@ -184,7 +428,6 @@
         const btn = document.getElementById('micBtn');
         btn.classList.add('mic-recording');
         document.getElementById('micBtnLabel').textContent = '🔴 Sto ascoltando... Parla ora';
-        document.getElementById('transcriptBox').classList.remove('hidden');
       };
 
       recognition.onresult = (event) => {
@@ -198,7 +441,7 @@
       recognition.onerror = (event) => {
         stopRecordingUI();
         if (event.error !== 'aborted') {
-          showStatus(`Microfono: ${event.error}. Puoi anche usare il microfono della tastiera nel riquadro sotto.`, 'error');
+          showStatus(`Microfono: ${event.error}. Puoi dettare anche col microfono della tastiera nel riquadro.`, 'error');
         }
       };
 
@@ -220,47 +463,39 @@
 
     function toggleVoiceRecording() {
       if (!recognition) {
-        document.getElementById('transcriptBox').classList.remove('hidden');
         document.getElementById('voiceText').focus();
-        showStatus('Usa il tasto microfono della tastiera Samsung qui sotto per dettare!', 'info');
+        showStatus('Usa il microfono della tastiera Samsung nel riquadro testo!', 'info');
         return;
       }
-
       if (isRecording) {
         recognition.stop();
       } else {
         document.getElementById('voiceText').value = '';
-        try {
-          recognition.start();
-        } catch {
-          recognition.stop();
-        }
+        try { recognition.start(); } catch { recognition.stop(); }
       }
     }
 
-    function clearTranscript() {
-      document.getElementById('voiceText').value = '';
-      document.getElementById('transcriptBox').classList.add('hidden');
-    }
-
-    function toggleManualForm() {
-      document.getElementById('manualForm').classList.toggle('hidden');
-    }
-
-    function addManualItem() {
+    async function addManualItem() {
+      if (!lotsRef) return toggleConfigModal();
       const prod = document.getElementById('manualProd').value.trim();
       const date = document.getElementById('manualDate').value;
       if (!prod || !date) return alert('Inserisci prodotto e data.');
 
-      lots.push({
-        id: Date.now() + Math.random(),
+      await push(lotsRef, {
         prodotto: prod,
-        scadenza: date
+        scadenza: date,
+        createdAt: Date.now()
       });
-      saveLots();
+
       document.getElementById('manualProd').value = '';
       document.getElementById('manualDate').value = '';
-      showStatus(`Aggiunto: ${prod}`, 'info');
+      showStatus(`Inviato al PC: ${prod} (${formatDateIt(date)})`, 'info');
+    }
+
+    async function completeLot(firebaseKey) {
+      if (!db) return;
+      const itemRef = ref(db, `market_troiano_scadenze/${firebaseKey}`);
+      await remove(itemRef);
     }
 
     function showStatus(msg, type = 'info') {
@@ -278,7 +513,6 @@
       }
     }
 
-    // Rileva automaticamente tutti i modelli attivi sulla tua chiave API (come in prezzi-market)
     async function getCandidateModels(apiKey) {
       const defaults = [
         'models/gemini-3.8-flash',
@@ -298,12 +532,8 @@
           name.includes('flash') && !name.includes('thinking') && !name.includes('tts') && !name.includes('image')
         );
         const ordered = [];
-        for (const d of defaults) {
-          if (flashModels.includes(d)) ordered.push(d);
-        }
-        for (const m of flashModels) {
-          if (!ordered.includes(m)) ordered.push(m);
-        }
+        for (const d of defaults) if (flashModels.includes(d)) ordered.push(d);
+        for (const m of flashModels) if (!ordered.includes(m)) ordered.push(m);
         return ordered.length > 0 ? ordered : defaults;
       } catch {
         return defaults;
@@ -314,11 +544,8 @@
       const models = await getCandidateModels(apiKey);
       let lastError = null;
 
-      // Tenta ciascun modello disponibile (e fa un secondo giro se c'è picco di traffico temporaneo)
       for (let attempt = 0; attempt < 2; attempt++) {
         for (const modelName of models) {
-          const shortName = modelName.replace('models/', '');
-          showStatus(`Registrazione con ${shortName}...`, 'loading');
           try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 20000);
@@ -338,17 +565,16 @@
 
             clearTimeout(timeoutId);
             const data = await res.json();
-
             if (res.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
               return data.candidates[0].content.parts[0].text;
             }
             lastError = data.error?.message || `Errore ${res.status}`;
           } catch (e) {
-            lastError = e.name === 'AbortError' ? 'Timeout server' : e.message;
+            lastError = e.name === 'AbortError' ? 'Timeout' : e.message;
           }
         }
       }
-      throw new Error(lastError || 'Tutti i modelli sono momentaneamente occupati, riprova tra 3 secondi.');
+      throw new Error(lastError || 'Server temporaneamente occupati.');
     }
 
     async function processVoiceText() {
@@ -356,10 +582,10 @@
       if (!text) return;
 
       const apiKey = localStorage.getItem('gemini_api_key_market');
-      if (!apiKey) return toggleApiModal();
+      if (!apiKey || !lotsRef) return toggleConfigModal();
 
       const todayIso = new Date().toISOString().split('T')[0];
-      showStatus('Registrazione lotti in corso...', 'loading');
+      showStatus('Invio al monitor del negozio...', 'loading');
 
       const prompt = `Oggi è ${todayIso}. Estrai tutti i prodotti e le rispettive date di scadenza da questa frase dettata dal titolare di un negozio di alimentari:
 "${text}"
@@ -382,22 +608,21 @@ Rispondi SOLO con JSON valido:
         const nuovi = parsed.lotti || [];
 
         if (nuovi.length === 0) {
-          showStatus('Non ho capito prodotto e data. Riprova dicendo es. "Mozzarella 29 novembre".', 'error');
+          showStatus('Non ho capito prodotto e data. Riprova es: "Mozzarelle Leone 29 novembre".', 'error');
           return;
         }
 
-        nuovi.forEach(item => {
-          lots.push({
-            id: Date.now() + Math.random(),
+        for (const item of nuovi) {
+          await push(lotsRef, {
             prodotto: item.prodotto,
-            scadenza: item.scadenza
+            scadenza: item.scadenza,
+            createdAt: Date.now()
           });
-        });
+        }
 
-        saveLots();
-        clearTranscript();
+        document.getElementById('voiceText').value = '';
         const riepilogo = nuovi.map(n => `${n.prodotto} (${formatDateIt(n.scadenza)})`).join(', ');
-        showStatus(`Registrati ${nuovi.length} lotti: ${riepilogo}`, 'info');
+        showStatus(`Inviato al PC: ${riepilogo}`, 'info');
 
       } catch (err) {
         showStatus(`Errore: ${err.message}`, 'error');
@@ -408,8 +633,7 @@ Rispondi SOLO con JSON valido:
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const target = new Date(dateStr + 'T00:00:00');
-      const diffTime = target - today;
-      return Math.round(diffTime / (1000 * 60 * 60 * 24));
+      return Math.round((target - today) / (1000 * 60 * 60 * 24));
     }
 
     function formatDateIt(dateStr) {
@@ -419,98 +643,94 @@ Rispondi SOLO con JSON valido:
       return `${parseInt(d, 10)} ${mesi[parseInt(m, 10) - 1]} ${y}`;
     }
 
-    function setFilter(f) {
-      currentFilter = f;
-      ['all', 'urgent', 'soon'].forEach(key => {
-        const btn = document.getElementById(`filter-${key}`);
-        btn.className = key === f
-          ? 'px-3 py-1.5 rounded-lg bg-slate-800 text-white'
-          : 'px-3 py-1.5 rounded-lg bg-white text-slate-700 border border-slate-200';
-      });
-      renderList();
-    }
+    function createLotCardHtml(item, compact = false) {
+      const days = getDaysRemaining(item.scadenza);
+      let badgeHtml = '';
+      let borderClass = 'border-slate-200 bg-white';
 
-    function completeLot(id) {
-      lots = lots.filter(l => l.id !== id);
-      saveLots();
-    }
-
-    function renderList() {
-      const container = document.getElementById('lotsContainer');
-      const emptyState = document.getElementById('emptyState');
-      const search = document.getElementById('searchInput').value.trim().toLowerCase();
-
-      lots.sort((a, b) => a.scadenza.localeCompare(b.scadenza));
-
-      let urgentCount = 0;
-      let soonCount = 0;
-
-      lots.forEach(l => {
-        const days = getDaysRemaining(l.scadenza);
-        if (days <= 3) urgentCount++;
-        else if (days <= 7) soonCount++;
-      });
-
-      document.getElementById('count-all').textContent = lots.length;
-      document.getElementById('count-urgent').textContent = urgentCount;
-      document.getElementById('count-soon').textContent = soonCount;
-
-      document.getElementById('headerSummary').textContent = urgentCount > 0
-        ? `⚠️ ${urgentCount} lotti urgenti da controllare al banco`
-        : `${lots.length} lotti monitorati • Tutto sotto controllo`;
-
-      const filtered = lots.filter(l => {
-        const days = getDaysRemaining(l.scadenza);
-        if (currentFilter === 'urgent' && days > 3) return false;
-        if (currentFilter === 'soon' && (days <= 3 || days > 7)) return false;
-        if (search && !l.prodotto.toLowerCase().includes(search)) return false;
-        return true;
-      });
-
-      container.innerHTML = '';
-      if (filtered.length === 0) {
-        emptyState.classList.remove('hidden');
-        return;
+      if (days < 0) {
+        badgeHtml = `<span class="text-[11px] font-black px-2 py-0.5 rounded-full bg-red-600 text-white">SCADUTO (${Math.abs(days)}g fa)</span>`;
+        borderClass = 'border-red-400 bg-white ring-1 ring-red-400';
+      } else if (days === 0) {
+        badgeHtml = `<span class="text-[11px] font-black px-2 py-0.5 rounded-full bg-red-600 text-white">SCADE OGGI</span>`;
+        borderClass = 'border-red-400 bg-white ring-1 ring-red-400';
+      } else if (days <= 3) {
+        badgeHtml = `<span class="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-red-100 text-red-800">Tra ${days} giorn${days === 1 ? 'o' : 'i'}</span>`;
+        borderClass = 'border-red-200 bg-white';
+      } else if (days <= 7) {
+        badgeHtml = `<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900">Tra ${days} giorni</span>`;
+        borderClass = 'border-amber-200 bg-white';
+      } else {
+        badgeHtml = `<span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Tra ${days} giorni</span>`;
+        borderClass = 'border-emerald-200 bg-white';
       }
-      emptyState.classList.add('hidden');
 
-      filtered.forEach(item => {
-        const days = getDaysRemaining(item.scadenza);
-        let badgeHtml = '';
-        let cardBorder = 'border-slate-200 bg-white';
-
-        if (days < 0) {
-          badgeHtml = `<span class="text-xs font-extrabold px-2.5 py-1 rounded-full bg-red-600 text-white">SCADUTO (${Math.abs(days)}g fa)</span>`;
-          cardBorder = 'border-red-400 bg-red-50/70';
-        } else if (days === 0) {
-          badgeHtml = `<span class="text-xs font-extrabold px-2.5 py-1 rounded-full bg-red-600 text-white">SCADE OGGI</span>`;
-          cardBorder = 'border-red-400 bg-red-50/70';
-        } else if (days <= 3) {
-          badgeHtml = `<span class="text-xs font-extrabold px-2.5 py-1 rounded-full bg-red-100 text-red-800">Tra ${days} giorn${days === 1 ? 'o' : 'i'}</span>`;
-          cardBorder = 'border-red-300 bg-red-50/40';
-        } else if (days <= 7) {
-          badgeHtml = `<span class="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-900">Tra ${days} giorni</span>`;
-          cardBorder = 'border-amber-300 bg-amber-50/30';
-        } else {
-          badgeHtml = `<span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800">Tra ${days} giorni</span>`;
-        }
-
-        const card = document.createElement('div');
-        card.className = `rounded-2xl border ${cardBorder} p-4 shadow-sm flex items-center justify-between gap-3`;
-        card.innerHTML = `
+      return `
+        <div class="animate-card rounded-2xl border ${borderClass} p-3.5 shadow-xs flex items-center justify-between gap-3">
           <div class="min-w-0 flex-1">
-            <div class="flex flex-wrap items-center gap-2 mb-1">
-              <h3 class="font-bold text-slate-900 text-base truncate">${item.prodotto}</h3>
+            <div class="flex flex-wrap items-center gap-1.5 mb-1">
+              <h4 class="font-extrabold text-slate-900 ${compact ? 'text-sm' : 'text-base'} leading-tight">${item.prodotto}</h4>
               ${badgeHtml}
             </div>
-            <p class="text-xs text-slate-500 font-medium">Scadenza lotto: <strong class="text-slate-700">${formatDateIt(item.scadenza)}</strong></p>
+            <p class="text-xs text-slate-500">Scadenza: <strong class="text-slate-700">${formatDateIt(item.scadenza)}</strong></p>
           </div>
-          <button onclick="completeLot(${item.id})" class="shrink-0 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-sm transition">
+          <button onclick="completeLot('${item.id}')" class="shrink-0 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs px-3 py-2 rounded-xl shadow-xs transition no-print">
             ✅ Finito
           </button>
-        `;
-        container.appendChild(card);
+        </div>
+      `;
+    }
+
+    function renderAll() {
+      // Ordina sempre dalla scadenza più vicina
+      lots.sort((a, b) => a.scadenza.localeCompare(b.scadenza));
+
+      // --- 1. RENDER MOBILE ---
+      document.getElementById('mobileTotalCount').textContent = lots.length;
+      const mobileList = document.getElementById('mobileLotsList');
+      if (lots.length === 0) {
+        mobileList.innerHTML = `<div class="bg-white rounded-2xl border border-slate-200 p-6 text-center text-xs text-slate-400">Nessun lotto attivo. Usa il microfono qui sopra per iniziare!</div>`;
+      } else {
+        mobileList.innerHTML = lots.map(item => createLotCardHtml(item, true)).join('');
+      }
+
+      // --- 2. RENDER MONITOR PC ---
+      const search = (document.getElementById('pcSearchInput')?.value || '').trim().toLowerCase();
+      const filtered = search ? lots.filter(l => l.prodotto.toLowerCase().includes(search)) : lots;
+
+      let expiredCount = 0;
+      let urgentList = [];
+      let soonList = [];
+      let okList = [];
+
+      filtered.forEach(item => {
+        const d = getDaysRemaining(item.scadenza);
+        if (d <= 0) expiredCount++;
+        if (d <= 3) urgentList.push(item);
+        else if (d <= 7) soonList.push(item);
+        else okList.push(item);
       });
+
+      document.getElementById('kpi-expired').textContent = expiredCount;
+      document.getElementById('kpi-urgent').textContent = urgentList.filter(i => getDaysRemaining(i.scadenza) > 0).length;
+      document.getElementById('kpi-soon').textContent = soonList.length;
+      document.getElementById('kpi-ok').textContent = okList.length;
+
+      document.getElementById('colCount-urgent').textContent = urgentList.length;
+      document.getElementById('colCount-soon').textContent = soonList.length;
+      document.getElementById('colCount-ok').textContent = okList.length;
+
+      document.getElementById('col-urgent').innerHTML = urgentList.length
+        ? urgentList.map(i => createLotCardHtml(i, false)).join('')
+        : `<p class="text-xs text-red-800/50 text-center py-8 font-medium">Nessun prodotto urgente</p>`;
+
+      document.getElementById('col-soon').innerHTML = soonList.length
+        ? soonList.map(i => createLotCardHtml(i, false)).join('')
+        : `<p class="text-xs text-amber-800/50 text-center py-8 font-medium">Nessun prodotto in arrivo</p>`;
+
+      document.getElementById('col-ok').innerHTML = okList.length
+        ? okList.map(i => createLotCardHtml(i, false)).join('')
+        : `<p class="text-xs text-emerald-800/50 text-center py-8 font-medium">Nessun altro lotto</p>`;
     }
 
     function shareListWhatsApp() {
