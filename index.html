@@ -58,7 +58,7 @@
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mb-5 text-center">
       <p class="text-xs text-slate-500 mb-3">
         Tocca il microfono e dì prodotto e scadenza (anche più prodotti insieme):<br/>
-        <span class="italic text-slate-400">"Mozzarella Santa Lucia 29 novembre, Prosciutto cotto 4 dicembre"</span>
+        <span class="italic text-slate-400">"Mozzarelle Leone 29 novembre, Prosciutto cotto 4 dicembre"</span>
       </p>
 
       <!-- PULSANTE MICROFONO GIGANTE -->
@@ -88,7 +88,7 @@
           + Oppure aggiungi/scrivi a mano
         </button>
         <div id="manualForm" class="hidden mt-3 flex flex-col sm:flex-row gap-2">
-          <input type="text" id="manualProd" placeholder="Es. Ricotta Santa Lucia" class="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-sm" />
+          <input type="text" id="manualProd" placeholder="Es. Mozzarelle Leone" class="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-sm" />
           <input type="date" id="manualDate" class="border border-slate-300 rounded-xl px-3 py-2 text-sm" />
           <button onclick="addManualItem()" class="bg-slate-800 text-white font-semibold px-4 py-2 rounded-xl text-sm">Aggiungi</button>
         </div>
@@ -278,38 +278,77 @@
       }
     }
 
-    async function callGeminiWithFallback(apiKey, prompt) {
-      const models = [
+    // Rileva automaticamente tutti i modelli attivi sulla tua chiave API (come in prezzi-market)
+    async function getCandidateModels(apiKey) {
+      const defaults = [
         'models/gemini-3.8-flash',
         'models/gemini-3.0-flash',
         'models/gemini-2.5-flash-lite',
-        'models/gemini-2.0-flash'
+        'models/gemini-2.5-flash'
       ];
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+        if (!res.ok) return defaults;
+        const data = await res.json();
+        const available = (data.models || [])
+          .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
+          .map(m => m.name);
+
+        const flashModels = available.filter(name =>
+          name.includes('flash') && !name.includes('thinking') && !name.includes('tts') && !name.includes('image')
+        );
+        const ordered = [];
+        for (const d of defaults) {
+          if (flashModels.includes(d)) ordered.push(d);
+        }
+        for (const m of flashModels) {
+          if (!ordered.includes(m)) ordered.push(m);
+        }
+        return ordered.length > 0 ? ordered : defaults;
+      } catch {
+        return defaults;
+      }
+    }
+
+    async function callGeminiWithFallback(apiKey, prompt) {
+      const models = await getCandidateModels(apiKey);
       let lastError = null;
 
-      for (const modelName of models) {
-        try {
-          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: {
-                temperature: 0.1,
-                responseMimeType: "application/json"
-              }
-            })
-          });
-          const data = await res.json();
-          if (res.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
-            return data.candidates[0].content.parts[0].text;
+      // Tenta ciascun modello disponibile (e fa un secondo giro se c'è picco di traffico temporaneo)
+      for (let attempt = 0; attempt < 2; attempt++) {
+        for (const modelName of models) {
+          const shortName = modelName.replace('models/', '');
+          showStatus(`Registrazione con ${shortName}...`, 'loading');
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 20000);
+
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              signal: controller.signal,
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                  temperature: 0.1,
+                  responseMimeType: "application/json"
+                }
+              })
+            });
+
+            clearTimeout(timeoutId);
+            const data = await res.json();
+
+            if (res.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+              return data.candidates[0].content.parts[0].text;
+            }
+            lastError = data.error?.message || `Errore ${res.status}`;
+          } catch (e) {
+            lastError = e.name === 'AbortError' ? 'Timeout server' : e.message;
           }
-          lastError = data.error?.message || `Errore ${res.status}`;
-        } catch (e) {
-          lastError = e.message;
         }
       }
-      throw new Error(lastError || 'Errore di connessione');
+      throw new Error(lastError || 'Tutti i modelli sono momentaneamente occupati, riprova tra 3 secondi.');
     }
 
     async function processVoiceText() {
@@ -327,7 +366,7 @@
 
 REGOLE:
 1. Separa ogni prodotto distinto in un elemento dell'array.
-2. Normalizza il nome del prodotto con iniziale maiuscola e forma chiara (es. "Mozzarella Santa Lucia", "Prosciutto Cotto Vaschetta").
+2. Normalizza il nome del prodotto con iniziale maiuscola e forma chiara (es. "Mozzarelle Leone", "Prosciutto Cotto Vaschetta").
 3. Calcola la data esatta nel formato YYYY-MM-DD (se viene detto solo giorno e mese senza anno, usa l'anno corretto futuro rispetto a oggi ${todayIso}; se dice "tra 5 giorni" o "fine mese" calcola la data esatta).
 
 Rispondi SOLO con JSON valido:
