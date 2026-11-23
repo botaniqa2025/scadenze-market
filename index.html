@@ -22,9 +22,105 @@
     .animate-card {
       animation: fadeSlideIn 0.25s ease-out;
     }
+
+    #printOnlySheet {
+      display: none;
+    }
+
+    @page {
+      size: A4 landscape;
+      margin: 8mm;
+    }
+
     @media print {
-      .no-print { display: none !important; }
-      body { background: white !important; }
+      .no-print, header, section, #configModal, #editModal, #globalErrorBanner {
+        display: none !important;
+      }
+      body {
+        background: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        color: #000000 !important;
+        font-family: Arial, Helvetica, sans-serif !important;
+      }
+      #printOnlySheet {
+        display: block !important;
+        width: 100% !important;
+      }
+      .print-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        border-bottom: 2px solid #0f172a;
+        padding-bottom: 4px;
+        margin-bottom: 8px;
+      }
+      .print-top h1 {
+        font-size: 14px;
+        font-weight: 900;
+        margin: 0;
+        text-transform: uppercase;
+      }
+      .print-top span {
+        font-size: 10px;
+        color: #334155;
+      }
+      .print-cols {
+        display: flex;
+        gap: 10px;
+        align-items: stretch;
+        width: 100%;
+      }
+      .print-col {
+        flex: 1;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        padding: 6px;
+        box-sizing: border-box;
+      }
+      .print-col-title {
+        font-weight: 800;
+        text-transform: uppercase;
+        padding: 3px 6px;
+        border-radius: 4px;
+        margin-bottom: 5px;
+        display: flex;
+        justify-content: space-between;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .title-urgent { background: #fee2e2 !important; color: #991b1b !important; border: 1px solid #fca5a5; }
+      .title-soon   { background: #fef3c7 !important; color: #92400e !important; border: 1px solid #fcd34d; }
+      .title-ok     { background: #d1fae5 !important; color: #065f46 !important; border: 1px solid #6ee7b7; }
+      .print-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .print-table td {
+        border-bottom: 1px solid #e2e8f0;
+        padding: 2.5px 3px;
+        vertical-align: middle;
+        line-height: 1.15;
+      }
+      .print-table tr:last-child td {
+        border-bottom: none;
+      }
+      .p-name {
+        font-weight: 700;
+        color: #0f172a;
+      }
+      .p-date {
+        text-align: right;
+        white-space: nowrap;
+        color: #334155;
+        font-weight: 600;
+      }
+      .p-days {
+        text-align: right;
+        white-space: nowrap;
+        font-weight: 800;
+        padding-left: 4px;
+      }
     }
   </style>
 </head>
@@ -149,7 +245,7 @@
   <!-- ===================================================================== -->
   <!-- VISTA 1: PANNELLO CELLULARE (INSERIMENTO VOCALE E RAPIDO)             -->
   <!-- ===================================================================== -->
-  <section id="view-mobile" class="max-w-xl mx-auto w-full px-4 mt-5 pb-16">
+  <section id="view-mobile" class="max-w-xl mx-auto w-full px-4 mt-5 pb-16 no-print">
     
     <div class="bg-white rounded-3xl shadow-md border border-slate-200/80 p-5 sm:p-6 mb-5">
       <div class="text-center mb-4">
@@ -208,7 +304,7 @@
   <!-- ===================================================================== -->
   <!-- VISTA 2: MONITOR PC NEGOZIO (DASHBOARD COMPLETA SEMPRE AGGIORNATA)    -->
   <!-- ===================================================================== -->
-  <section id="view-pc" class="hidden max-w-7xl mx-auto w-full px-4 mt-5 pb-12">
+  <section id="view-pc" class="hidden max-w-7xl mx-auto w-full px-4 mt-5 pb-12 no-print">
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5">
       <div class="bg-white rounded-2xl p-4 border-l-4 border-red-600 shadow-sm flex items-center justify-between">
@@ -244,23 +340,23 @@
       </div>
     </div>
 
-    <div class="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-200 mb-5 flex flex-wrap items-center justify-between gap-3 no-print">
+    <div class="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-200 mb-5 flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-2 flex-1 min-w-[220px]">
         <span class="text-slate-400">🔍</span>
         <input type="text" id="pcSearchInput" oninput="renderAll()" placeholder="Filtra prodotto sul monitor (es. Mozzarella, Cotto, Yogurt)..." class="w-full text-sm focus:outline-none" />
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <button onclick="exportLotsJson()" class="bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-bold px-3.5 py-2 rounded-xl transition">
-          📤 Esporta
+          📤 Esporta (.json)
         </button>
         <label class="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-bold px-3.5 py-2 rounded-xl transition">
-          <span>📥 Importa</span>
+          <span>📥 Importa (.json)</span>
           <input type="file" accept=".json,application/json" class="hidden" onchange="importLotsJson(this)" />
         </label>
         <button onclick="shareListWhatsApp()" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold px-3.5 py-2 rounded-xl transition">
           📲 WhatsApp Urgenti
         </button>
-        <button onclick="window.print()" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition">
+        <button onclick="printSinglePage()" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition">
           🖨️ Stampa Situazione
         </button>
       </div>
@@ -305,6 +401,9 @@
 
   </section>
 
+  <!-- FOGLIO DEDICATO SOLO ALLA STAMPA SU SINGOLA PAGINA -->
+  <div id="printOnlySheet"></div>
+
   <!-- FIREBASE SDK MODULAR -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -332,6 +431,7 @@
     window.exportLotsJson = exportLotsJson;
     window.importLotsJson = importLotsJson;
     window.shareListWhatsApp = shareListWhatsApp;
+    window.printSinglePage = printSinglePage;
     window.renderAll = renderAll;
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -349,7 +449,6 @@
       setupSpeechRecognition();
       initCloudConnection();
 
-      // Controllo automatico ogni minuto: appena scatta la mezzanotte sposta i prodotti tra le colonne da solo
       setInterval(() => {
         const currentDay = new Date().toDateString();
         if (currentDay !== lastRenderedDay) {
@@ -600,7 +699,6 @@
       await remove(itemRef);
     }
 
-    // --- MODIFICA & ELIMINA PRODOTTO ---
     function openEditModal(firebaseKey) {
       const item = lots.find(l => l.id === firebaseKey);
       if (!item) return;
@@ -641,7 +739,7 @@
       closeEditModal();
     }
 
-    // --- ESPORTA & IMPORTA LISTA ---
+    // --- ESPORTA & IMPORTA IN FORMATO .JSON ---
     function exportLotsJson() {
       if (lots.length === 0) {
         alert('Nessun prodotto in lista da esportare.');
@@ -687,9 +785,9 @@
           }
 
           if (importedCount === 0) {
-            alert('Il file selezionato non contiene prodotti validi.');
+            alert('Il file .json selezionato non contiene prodotti validi.');
           } else {
-            alert(`Importati con successo ${importedCount} prodotti!`);
+            alert(`Importati con successo ${importedCount} prodotti dal file JSON!`);
           }
         } catch (err) {
           alert('Errore durante la lettura del file: assicurati che sia un file .json valido.');
@@ -935,6 +1033,89 @@ Rispondi SOLO con JSON valido:
       document.getElementById('col-ok').innerHTML = okList.length
         ? okList.map(i => createLotCardHtml(i, false)).join('')
         : `<p class="text-xs text-emerald-800/50 text-center py-8 font-medium">Nessun altro lotto</p>`;
+    }
+
+    function buildPrintColumnTable(items, fontSizePx) {
+      if (items.length === 0) {
+        return `<p style="font-size:${fontSizePx}px; color:#64748b; text-align:center; padding:8px 0;">Nessun articolo</p>`;
+      }
+      const rows = items.map(item => {
+        const d = getDaysRemaining(item.scadenza);
+        let dLabel = `${d}g`;
+        let dColor = '#065f46';
+        if (d < 0) { dLabel = `SCAD. (${Math.abs(d)}g)`; dColor = '#dc2626'; }
+        else if (d === 0) { dLabel = 'OGGI'; dColor = '#dc2626'; }
+        else if (d <= 3) { dColor = '#dc2626'; }
+        else if (d <= 7) { dColor = '#b45309'; }
+
+        return `
+          <tr>
+            <td class="p-name">${item.prodotto}</td>
+            <td class="p-date">${formatDateIt(item.scadenza)}</td>
+            <td class="p-days" style="color:${dColor};">${dLabel}</td>
+          </tr>
+        `;
+      }).join('');
+
+      return `<table class="print-table" style="font-size:${fontSizePx}px;"><tbody>${rows}</tbody></table>`;
+    }
+
+    // Stampa compatta su SINGOLA PAGINA divisa nelle 3 colonne (Urgenti, In Arrivo, Monitorati)
+    function printSinglePage() {
+      const search = (document.getElementById('pcSearchInput')?.value || '').trim().toLowerCase();
+      const filtered = search ? lots.filter(l => l.prodotto.toLowerCase().includes(search)) : lots;
+
+      const urgentList = [];
+      const soonList = [];
+      const okList = [];
+
+      filtered.forEach(item => {
+        const d = getDaysRemaining(item.scadenza);
+        if (d <= 3) urgentList.push(item);
+        else if (d <= 7) soonList.push(item);
+        else okList.push(item);
+      });
+
+      const maxColLen = Math.max(urgentList.length, soonList.length, okList.length);
+      let fontSize = 10;
+      if (maxColLen > 38) fontSize = 7.2;
+      else if (maxColLen > 28) fontSize = 8;
+      else if (maxColLen > 20) fontSize = 9;
+
+      const oggi = new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      const sheet = document.getElementById('printOnlySheet');
+
+      sheet.innerHTML = `
+        <div class="print-top">
+          <h1>Market Troiano — Situazione Scadenze Banco</h1>
+          <span>Via Gargano 148, Manfredonia • ${oggi} • Totale: ${filtered.length} lotti</span>
+        </div>
+        <div class="print-cols">
+          <div class="print-col">
+            <div class="print-col-title title-urgent" style="font-size:${fontSize + 0.5}px;">
+              <span>1. Urgenti (Oggi / 3 gg)</span>
+              <span>${urgentList.length}</span>
+            </div>
+            ${buildPrintColumnTable(urgentList, fontSize)}
+          </div>
+          <div class="print-col">
+            <div class="print-col-title title-soon" style="font-size:${fontSize + 0.5}px;">
+              <span>2. In Arrivo (4 - 7 gg)</span>
+              <span>${soonList.length}</span>
+            </div>
+            ${buildPrintColumnTable(soonList, fontSize)}
+          </div>
+          <div class="print-col">
+            <div class="print-col-title title-ok" style="font-size:${fontSize + 0.5}px;">
+              <span>3. Monitorati (+7 gg)</span>
+              <span>${okList.length}</span>
+            </div>
+            ${buildPrintColumnTable(okList, fontSize)}
+          </div>
+        </div>
+      `;
+
+      window.print();
     }
 
     function shareListWhatsApp() {
