@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Market Troiano • Gestione Scadenze Live</title>
+  <link rel="manifest" href="manifest.json" />
+  <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');</script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @keyframes pulseRing {
@@ -806,9 +808,6 @@
       }
     }
 
-    // =========================================================================
-    // PARSER ISTANTANEO LOCALE (0ms - Riconosce date e prodotti senza attese)
-    // =========================================================================
     function formatIsoLocal(dateObj) {
       const y = dateObj.getFullYear();
       const m = String(dateObj.getMonth() + 1).padStart(2, '0');
@@ -824,7 +823,6 @@
       today.setHours(0, 0, 0, 0);
       let year = today.getFullYear();
       const candidate = new Date(year, monthZeroBased, day);
-      // Se la data è passata da oltre 30 giorni rispetto a oggi, intende l'anno prossimo (es. a dicembre dice "15 gennaio")
       if ((today - candidate) / (1000 * 60 * 60 * 24) > 30) {
         year += 1;
       }
@@ -860,7 +858,6 @@
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // Divide eventuali liste separate da virgola, punto e virgola o a capo
       const chunks = rawText
         .split(/[,;\n]+/)
         .map(s => s.trim())
@@ -871,7 +868,6 @@
       for (const chunk of chunks) {
         let matched = false;
 
-        // 1. Formato "Prodotto [il/scade] 27 novembre [2026]"
         const reMonthName = /^(.*?)\b(?:scade\s+il|scadenza|scade|entro\s+il|il|al)?\s*(\d{1,2})\s+(gennaio|gen|febbraio|feb|marzo|mar|aprile|apr|maggio|mag|giugno|giu|luglio|lug|agosto|ago|settembre|set|sett|ottobre|ott|novembre|nov|dicembre|dic)(?:\s+(\d{2,4}))?\s*$/i;
         const m1 = chunk.match(reMonthName);
         if (m1) {
@@ -887,7 +883,6 @@
           }
         }
 
-        // 2. Formato numerico "Prodotto 27/11" oppure "27-11-2026"
         if (!matched) {
           const reNumeric = /^(.*?)\b(?:scade\s+il|scadenza|scade|entro\s+il|il|al)?\s*(\d{1,2})[\/\-\.](\d{1,2})(?:[\/\-\.](\d{2,4}))?\s*$/i;
           const m2 = chunk.match(reNumeric);
@@ -905,7 +900,6 @@
           }
         }
 
-        // 3. Formato relativo "Prodotto oggi / domani / dopodomani / tra X giorni"
         if (!matched) {
           const reRel = /^(.*?)\b(?:scade)?\s*(oggi|domani|dopodomani|tra\s+\d+\s+giorn[oi]|fra\s+\d+\s+giorn[oi])\s*$/i;
           const m3 = chunk.match(reRel);
@@ -926,14 +920,12 @@
           }
         }
 
-        // Se anche un solo pezzo della frase non è stato capito localmente, delega al paracadute AI
         if (!matched) return null;
       }
 
       return results.length > 0 ? results : null;
     }
 
-    // Paracadute rapido AI (timeout 5s) usato SOLO per frasi complesse non standard
     async function callGeminiFastFallback(apiKey, text) {
       const todayIso = formatIsoLocal(new Date());
       const models = ['models/gemini-2.5-flash-lite', 'models/gemini-2.5-flash'];
@@ -970,10 +962,8 @@
       if (!text) return;
       if (!lotsRef) return toggleConfigModal();
 
-      // 1. Prova prima il riconoscimento ISTANTANEO locale (0ms)
       let nuovi = parseLocalInstant(text);
 
-      // 2. Solo se la frase è complessa e non riconosciuta al volo, usa Gemini rapido
       if (!nuovi) {
         const apiKey = localStorage.getItem('gemini_api_key_market');
         if (!apiKey) {
@@ -989,7 +979,6 @@
         }
       }
 
-      // Svuota subito la casella e invia direttamente a Firebase in parallelo
       inputEl.value = '';
       await Promise.all(nuovi.map(item => push(lotsRef, {
         prodotto: item.prodotto,
