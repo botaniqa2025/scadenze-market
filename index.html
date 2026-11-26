@@ -196,7 +196,7 @@
         </div>
 
         <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">2. Chiave API Google AI Studio</label>
+          <label class="block text-xs font-bold text-slate-700 mb-1">2. Chiave API Google AI Studio (opzionale, solo di riserva)</label>
           <input type="password" id="apiKeyInput" placeholder="Incolla qui la chiave AIzaSy..." class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600" />
         </div>
       </div>
@@ -250,7 +250,7 @@
     <div class="bg-white rounded-3xl shadow-md border border-slate-200/80 p-5 sm:p-6 mb-5">
       <div class="text-center mb-4">
         <span class="inline-block text-[11px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full mb-2">
-          Inserimento Rapido da Scaffale
+          Inserimento Istantaneo (0,1s)
         </span>
         <h2 class="text-lg font-extrabold text-slate-900">Detta o scrivi le scadenze</h2>
         <p class="text-xs text-slate-500 mt-0.5">
@@ -268,12 +268,12 @@
 
       <div class="mt-4 bg-slate-50 border border-slate-200 rounded-2xl p-3.5">
         <div class="flex items-center justify-between mb-1.5">
-          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Oppure scrivi / modifica qui:</span>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Oppure scrivi / modifica qui (Invio per salvare):</span>
           <button onclick="document.getElementById('voiceText').value=''" class="text-xs text-slate-400 hover:text-red-500 font-medium">Pulisci</button>
         </div>
-        <textarea id="voiceText" rows="2" class="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-600 resize-none" placeholder="Scrivi qui es: Ricotta Santa Lucia 30 novembre, Yogurt 10 dicembre..."></textarea>
+        <textarea id="voiceText" rows="2" onkeydown="if(event.key==='Enter' && !event.shiftKey){ event.preventDefault(); processVoiceText(); }" class="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-600 resize-none" placeholder="Scrivi qui es: Latte Silac 27 novembre, Yogurt 10 dicembre..."></textarea>
         <button onclick="processVoiceText()" class="mt-2.5 w-full bg-amber-500 hover:bg-amber-600 active:scale-[0.99] text-slate-950 font-extrabold py-3 rounded-xl text-sm shadow-sm transition flex items-center justify-center gap-2">
-          <span>⚡ Invia al Monitor PC</span>
+          <span>⚡ Invia Subito al Monitor PC</span>
         </button>
       </div>
 
@@ -519,21 +519,16 @@
         alert('URL Firebase non valido. Deve iniziare con https:// e finire con .firebasedatabase.app');
         return;
       }
-      if (!apiKey) {
-        alert('Inserisci la chiave API Gemini (AIzaSy...)');
-        return;
-      }
 
       localStorage.setItem('market_firebase_url', fbUrl);
-      localStorage.setItem('gemini_api_key_market', apiKey);
+      if (apiKey) localStorage.setItem('gemini_api_key_market', apiKey);
       toggleConfigModal();
       location.reload();
     }
 
     function updateConnectionUI(state) {
       const fbUrl = localStorage.getItem('market_firebase_url');
-      const apiKey = localStorage.getItem('gemini_api_key_market');
-      document.getElementById('configStatusDot').className = (fbUrl && apiKey)
+      document.getElementById('configStatusDot').className = fbUrl
         ? 'w-2.5 h-2.5 rounded-full bg-emerald-400'
         : 'w-2.5 h-2.5 rounded-full bg-red-400';
 
@@ -560,9 +555,8 @@
     function initCloudConnection() {
       const rawUrl = localStorage.getItem('market_firebase_url');
       const fbUrl = normalizeFirebaseUrl(rawUrl);
-      const apiKey = localStorage.getItem('gemini_api_key_market');
 
-      if (!fbUrl || !apiKey) {
+      if (!fbUrl) {
         updateConnectionUI('disconnected');
         toggleConfigModal();
         return;
@@ -739,7 +733,6 @@
       closeEditModal();
     }
 
-    // --- ESPORTA & IMPORTA IN FORMATO .JSON ---
     function exportLotsJson() {
       if (lots.length === 0) {
         alert('Nessun prodotto in lista da esportare.');
@@ -813,120 +806,199 @@
       }
     }
 
-    async function getCandidateModels(apiKey) {
-      const defaults = [
-        'models/gemini-3.8-flash',
-        'models/gemini-3.0-flash',
-        'models/gemini-2.5-flash-lite',
-        'models/gemini-2.5-flash'
-      ];
-      try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-        if (!res.ok) return defaults;
-        const data = await res.json();
-        const available = (data.models || [])
-          .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
-          .map(m => m.name);
-
-        const flashModels = available.filter(name =>
-          name.includes('flash') && !name.includes('thinking') && !name.includes('tts') && !name.includes('image')
-        );
-        const ordered = [];
-        for (const d of defaults) if (flashModels.includes(d)) ordered.push(d);
-        for (const m of flashModels) if (!ordered.includes(m)) ordered.push(m);
-        return ordered.length > 0 ? ordered : defaults;
-      } catch {
-        return defaults;
-      }
+    // =========================================================================
+    // PARSER ISTANTANEO LOCALE (0ms - Riconosce date e prodotti senza attese)
+    // =========================================================================
+    function formatIsoLocal(dateObj) {
+      const y = dateObj.getFullYear();
+      const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const d = String(dateObj.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
     }
 
-    async function callGeminiWithFallback(apiKey, prompt) {
-      const models = await getCandidateModels(apiKey);
-      let lastError = null;
+    function resolveSmartYear(day, monthZeroBased, explicitYear) {
+      if (explicitYear) {
+        return explicitYear < 100 ? 2000 + explicitYear : explicitYear;
+      }
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      let year = today.getFullYear();
+      const candidate = new Date(year, monthZeroBased, day);
+      // Se la data è passata da oltre 30 giorni rispetto a oggi, intende l'anno prossimo (es. a dicembre dice "15 gennaio")
+      if ((today - candidate) / (1000 * 60 * 60 * 24) > 30) {
+        year += 1;
+      }
+      return year;
+    }
 
-      for (let attempt = 0; attempt < 2; attempt++) {
-        for (const modelName of models) {
-          try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 20000);
+    function capitalizeProduct(name) {
+      const cleaned = name
+        .replace(/\b(scade|scadenza|il|lo|la|l'|al|entro|del|per)\s*$/i, '')
+        .replace(/^[\s,.;:-]+|[\s,.;:-]+$/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (!cleaned) return '';
+      return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+    }
 
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              signal: controller.signal,
-              body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: {
-                  temperature: 0.1,
-                  responseMimeType: "application/json"
-                }
-              })
-            });
+    function parseLocalInstant(rawText) {
+      const mesiMap = {
+        gennaio: 0, gen: 0,
+        febbraio: 1, feb: 1,
+        marzo: 2, mar: 2,
+        aprile: 3, apr: 3,
+        maggio: 4, mag: 4,
+        giugno: 5, giu: 5,
+        luglio: 6, lug: 6,
+        agosto: 7, ago: 7,
+        settembre: 8, set: 8, sett: 8,
+        ottobre: 9, ott: 9,
+        novembre: 10, nov: 10,
+        dicembre: 11, dic: 11
+      };
 
-            clearTimeout(timeoutId);
-            const data = await res.json();
-            if (res.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
-              return data.candidates[0].content.parts[0].text;
-            }
-            lastError = data.error?.message || `Errore ${res.status}`;
-          } catch (e) {
-            lastError = e.name === 'AbortError' ? 'Timeout' : e.message;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Divide eventuali liste separate da virgola, punto e virgola o a capo
+      const chunks = rawText
+        .split(/[,;\n]+/)
+        .map(s => s.trim())
+        .filter(Boolean);
+
+      const results = [];
+
+      for (const chunk of chunks) {
+        let matched = false;
+
+        // 1. Formato "Prodotto [il/scade] 27 novembre [2026]"
+        const reMonthName = /^(.*?)\b(?:scade\s+il|scadenza|scade|entro\s+il|il|al)?\s*(\d{1,2})\s+(gennaio|gen|febbraio|feb|marzo|mar|aprile|apr|maggio|mag|giugno|giu|luglio|lug|agosto|ago|settembre|set|sett|ottobre|ott|novembre|nov|dicembre|dic)(?:\s+(\d{2,4}))?\s*$/i;
+        const m1 = chunk.match(reMonthName);
+        if (m1) {
+          const prod = capitalizeProduct(m1[1]);
+          const day = parseInt(m1[2], 10);
+          const monthIdx = mesiMap[m1[3].toLowerCase()];
+          const expYear = m1[4] ? parseInt(m1[4], 10) : null;
+          if (prod && day >= 1 && day <= 31 && monthIdx !== undefined) {
+            const year = resolveSmartYear(day, monthIdx, expYear);
+            const dt = new Date(year, monthIdx, day);
+            results.push({ prodotto: prod, scadenza: formatIsoLocal(dt) });
+            matched = true;
           }
         }
+
+        // 2. Formato numerico "Prodotto 27/11" oppure "27-11-2026"
+        if (!matched) {
+          const reNumeric = /^(.*?)\b(?:scade\s+il|scadenza|scade|entro\s+il|il|al)?\s*(\d{1,2})[\/\-\.](\d{1,2})(?:[\/\-\.](\d{2,4}))?\s*$/i;
+          const m2 = chunk.match(reNumeric);
+          if (m2) {
+            const prod = capitalizeProduct(m2[1]);
+            const day = parseInt(m2[2], 10);
+            const monthIdx = parseInt(m2[3], 10) - 1;
+            const expYear = m2[4] ? parseInt(m2[4], 10) : null;
+            if (prod && day >= 1 && day <= 31 && monthIdx >= 0 && monthIdx <= 11) {
+              const year = resolveSmartYear(day, monthIdx, expYear);
+              const dt = new Date(year, monthIdx, day);
+              results.push({ prodotto: prod, scadenza: formatIsoLocal(dt) });
+              matched = true;
+            }
+          }
+        }
+
+        // 3. Formato relativo "Prodotto oggi / domani / dopodomani / tra X giorni"
+        if (!matched) {
+          const reRel = /^(.*?)\b(?:scade)?\s*(oggi|domani|dopodomani|tra\s+\d+\s+giorn[oi]|fra\s+\d+\s+giorn[oi])\s*$/i;
+          const m3 = chunk.match(reRel);
+          if (m3) {
+            const prod = capitalizeProduct(m3[1]);
+            const rel = m3[2].toLowerCase();
+            const dt = new Date(today);
+            if (rel === 'domani') dt.setDate(dt.getDate() + 1);
+            else if (rel === 'dopodomani') dt.setDate(dt.getDate() + 2);
+            else if (rel.startsWith('tra') || rel.startsWith('fra')) {
+              const num = parseInt(rel.match(/\d+/)[0], 10);
+              dt.setDate(dt.getDate() + num);
+            }
+            if (prod) {
+              results.push({ prodotto: prod, scadenza: formatIsoLocal(dt) });
+              matched = true;
+            }
+          }
+        }
+
+        // Se anche un solo pezzo della frase non è stato capito localmente, delega al paracadute AI
+        if (!matched) return null;
       }
-      throw new Error(lastError || 'Server temporaneamente occupati.');
+
+      return results.length > 0 ? results : null;
+    }
+
+    // Paracadute rapido AI (timeout 5s) usato SOLO per frasi complesse non standard
+    async function callGeminiFastFallback(apiKey, text) {
+      const todayIso = formatIsoLocal(new Date());
+      const models = ['models/gemini-2.5-flash-lite', 'models/gemini-2.5-flash'];
+      const prompt = `Oggi è ${todayIso}. Estrai prodotti e date di scadenza da: "${text}". Rispondi SOLO JSON: {"lotti":[{"prodotto":"Nome","scadenza":"YYYY-MM-DD"}]}`;
+
+      for (const modelName of models) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { temperature: 0.1, responseMimeType: "application/json" }
+            })
+          });
+          clearTimeout(timeoutId);
+          const data = await res.json();
+          const raw = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (res.ok && raw) {
+            const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+            if (parsed.lotti?.length) return parsed.lotti;
+          }
+        } catch {}
+      }
+      throw new Error('Formato non riconosciuto. Scrivi es: "Latte Silac 27 novembre".');
     }
 
     async function processVoiceText() {
-      const text = document.getElementById('voiceText').value.trim();
+      const inputEl = document.getElementById('voiceText');
+      const text = inputEl.value.trim();
       if (!text) return;
+      if (!lotsRef) return toggleConfigModal();
 
-      const apiKey = localStorage.getItem('gemini_api_key_market');
-      if (!apiKey || !lotsRef) return toggleConfigModal();
+      // 1. Prova prima il riconoscimento ISTANTANEO locale (0ms)
+      let nuovi = parseLocalInstant(text);
 
-      const todayIso = new Date().toISOString().split('T')[0];
-      showStatus('Invio al monitor del negozio...', 'loading');
-
-      const prompt = `Oggi è ${todayIso}. Estrai tutti i prodotti e le rispettive date di scadenza da questa frase dettata dal titolare di un negozio di alimentari:
-"${text}"
-
-REGOLE:
-1. Separa ogni prodotto distinto in un elemento dell'array.
-2. Normalizza il nome del prodotto con iniziale maiuscola e forma chiara (es. "Mozzarelle Leone", "Prosciutto Cotto Vaschetta").
-3. Calcola la data esatta nel formato YYYY-MM-DD (se viene detto solo giorno e mese senza anno, usa l'anno corretto futuro rispetto a oggi ${todayIso}; se dice "tra 5 giorni" o "fine mese" calcola la data esatta).
-
-Rispondi SOLO con JSON valido:
-{
-  "lotti": [
-    { "prodotto": "Nome Prodotto", "scadenza": "YYYY-MM-DD" }
-  ]
-}`;
-
-      try {
-        const raw = await callGeminiWithFallback(apiKey, prompt);
-        const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
-        const nuovi = parsed.lotti || [];
-
-        if (nuovi.length === 0) {
-          showStatus('Non ho capito prodotto e data. Riprova es: "Mozzarelle Leone 29 novembre".', 'error');
+      // 2. Solo se la frase è complessa e non riconosciuta al volo, usa Gemini rapido
+      if (!nuovi) {
+        const apiKey = localStorage.getItem('gemini_api_key_market');
+        if (!apiKey) {
+          showStatus('Scrivi nel formato "Prodotto 27 novembre" oppure inserisci la chiave API in Configura.', 'error');
           return;
         }
-
-        for (const item of nuovi) {
-          await push(lotsRef, {
-            prodotto: item.prodotto,
-            scadenza: item.scadenza,
-            createdAt: Date.now()
-          });
+        showStatus('Elaborazione rapida...', 'loading');
+        try {
+          nuovi = await callGeminiFastFallback(apiKey, text);
+        } catch (err) {
+          showStatus(err.message, 'error');
+          return;
         }
-
-        document.getElementById('voiceText').value = '';
-        const riepilogo = nuovi.map(n => `${n.prodotto} (${formatDateIt(n.scadenza)})`).join(', ');
-        showStatus(`Inviato al PC: ${riepilogo}`, 'info');
-
-      } catch (err) {
-        showStatus(`Errore: ${err.message}`, 'error');
       }
+
+      // Svuota subito la casella e invia direttamente a Firebase in parallelo
+      inputEl.value = '';
+      await Promise.all(nuovi.map(item => push(lotsRef, {
+        prodotto: item.prodotto,
+        scadenza: item.scadenza,
+        createdAt: Date.now()
+      })));
+
+      const riepilogo = nuovi.map(n => `${n.prodotto} (${formatDateIt(n.scadenza)})`).join(', ');
+      showStatus(`Aggiunto subito: ${riepilogo}`, 'info');
     }
 
     function getDaysRemaining(dateStr) {
@@ -1060,7 +1132,6 @@ Rispondi SOLO con JSON valido:
       return `<table class="print-table" style="font-size:${fontSizePx}px;"><tbody>${rows}</tbody></table>`;
     }
 
-    // Stampa compatta su SINGOLA PAGINA divisa nelle 3 colonne (Urgenti, In Arrivo, Monitorati)
     function printSinglePage() {
       const search = (document.getElementById('pcSearchInput')?.value || '').trim().toLowerCase();
       const filtered = search ? lots.filter(l => l.prodotto.toLowerCase().includes(search)) : lots;
