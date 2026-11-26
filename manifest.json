@@ -1,17 +1,23 @@
 {
-  "name": "Market Troiano - Scadenze",
-  "short_name": "Scadenze MT",
+  "name": "ScadenzeZero • Market Troiano",
+  "short_name": "ScadenzeZero",
   "start_url": "/scadenze-market/?view=mobile",
   "scope": "/scadenze-market/",
   "display": "standalone",
-  "background_color": "#065f46",
-  "theme_color": "#047857",
+  "background_color": "#2D3142",
+  "theme_color": "#2D3142",
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='110' fill='%23047857'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial,sans-serif' font-weight='900' font-size='230' fill='white'%3EMT%3C/text%3E%3C/svg%3E",
+      "src": "logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='110' fill='%232D3142'/%3E%3Ctext x='50%25' y='46%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial,sans-serif' font-weight='900' font-size='190' fill='%23FFFFFF'%3ESZ%3C/text%3E%3Crect x='136' y='355' width='240' height='26' rx='13' fill='%23EF8354'/%3E%3C/svg%3E",
       "sizes": "512x512",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "maskable"
     }
   ]
 }
